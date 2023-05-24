@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "ydCSicpgKAuyqTRzm23ea3Zvzi0rlLVUEgyAmsYNxIbnWM5y9H8nZqrhtKO1yPstz2saBmGqYOFCzYF06TLAzw==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\Côme\\Desktop\\Application programming certificate\\C# II\\week09\\week08.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Côme\\.nuget\\packages\\newtonsoft.json\\13.0.3\\newtonsoft.json.13.0.3.nupkg.sha512"
+  ],
+  "logs": []
+}
