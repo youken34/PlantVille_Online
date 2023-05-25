@@ -19,11 +19,17 @@ using System.IO;
 using Newtonsoft.Json;
 using System.Reflection;
 using System.Net.Http;
+using System.Text.RegularExpressions;
 
 namespace week08
 {
     public partial class Interface : Window
     {
+
+        // Next steps :
+        // Post method to post trade
+        // Make the last adjustments regarding the acceptrade function (so that they are close as well) and you can't accept your own trade
+
         private string dataFilePath = "data.txt";
         private string username;
 
@@ -86,18 +92,19 @@ namespace week08
             SetPage("Chat", "", true, true, true, "Send", false);
             BottomButton.Width = 80;
             BottomButton.Click += Send;
+            LoadChatMessages();
         }
 
         public void TradeMarketPage(object sender, RoutedEventArgs r)
         {
             SetPage("Trade Marketplace", "", true, false, true, "Accept Trade", false);
-            // BottomButton.Click += Send;
+            GetTrade();
+            BottomButton.Click += AcceptTrade;
         }
 
         public void ProposeTradePage(object sender, RoutedEventArgs r)
         {
             SetPage("Propose Trade", "", false, false, true, "Submit", true);
-            // BottomButton.Click += Send;
         }
 
 
@@ -378,12 +385,79 @@ namespace week08
             var playerData = (Player)DataContext;
             var username = playerData.Username;
             var message = SendInput.Text;
+            myListBox.Items.Clear();
 
             if (!string.IsNullOrEmpty(message))
             {
                 PostChatMessage(username, message);
             }
+            LoadChatMessages();
             SendInput.Text = "";
+        }
+
+        private async void AcceptTrade(object sender, RoutedEventArgs a)
+        {
+
+            try
+            {
+                if (myListBox.SelectedItem != null)
+                {
+                    string trade = myListBox.SelectedItem.ToString();
+                    var playerData = (Player)DataContext;
+
+                    Match price = Regex.Match(trade, @"(?<=\$)(\d+)");
+                    Match quantity = Regex.Match(trade, @"(?<=(buy|bought)\s)(\d+)");
+                    Match plant = Regex.Match(trade, @"(?<=\d\s)(\w+)");
+                    Match state = Regex.Match(trade, @"\[(.*?)\]");
+
+                    string plantString = plant.ToString();
+                    int priceString = Convert.ToInt32(price.ToString());
+                    int quantityValue = Convert.ToInt32(quantity.ToString());
+                    string stateString = state.ToString();
+
+                    if (price.Success && quantity.Success && plant.Success && stateString == "[open]")
+                    {
+                        string capitalizedPlant = char.ToUpper(plantString[0]) + plantString.Substring(1);
+
+                        int count = playerData.SeedHarvested.Count(seed => seed.name == capitalizedPlant);
+                        if (count >= quantityValue)
+                        {
+                            playerData.Money += priceString;
+                            var seedsToRemove = playerData.SeedHarvested.Where(seed => seed.name == capitalizedPlant).Take(quantityValue).ToList();
+                            foreach (Seed seed in seedsToRemove)
+                            {
+                                playerData.SeedHarvested.Remove(seed);
+                            }
+                            using (var httpClient = new HttpClient())
+                            {
+
+                            }
+                            MessageBox.Show($"You made {priceString}$ by selling {quantityValue} {capitalizedPlant}");
+
+                        }
+                        else
+                        {
+                            MessageBox.Show($"You dont have enough {capitalizedPlant} to take the trade");
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show("This trade is no longer available");
+                    }
+                    SavePlayerData(playerData);
+                }
+                else
+                {
+                    MessageBox.Show("Please select a trade");
+                }
+
+            }
+            catch (System.Exception ex)
+            {
+                MessageBox.Show($"{ex.Message}");
+            }
+
+
         }
         private async void LoadChatMessages()
         {
@@ -395,8 +469,19 @@ namespace week08
                     if (response.IsSuccessStatusCode)
                     {
                         var json = await response.Content.ReadAsStringAsync();
-                        var messages = JsonConvert.DeserializeObject<List<ChatMessage>>(json);
-                        myListBox.ItemsSource = messages;
+                        List<ChatData> chatMessages = JsonConvert.DeserializeObject<List<ChatData>>(json);
+
+                        var groupedMessages = chatMessages.GroupBy(message => message.Pk);
+
+                        var formattedMessages = groupedMessages.Select(group =>
+                        {
+                            var Message = group.First();
+                            return $"{Message.Fields.Username}: {Message.Fields.Message}";
+                        }).ToList();
+                        foreach (var item in formattedMessages)
+                        {
+                            myListBox.Items.Add(item);
+                        }
                     }
                     else
                     {
@@ -422,13 +507,71 @@ namespace week08
                     });
 
                     var response = await httpClient.PostAsync("http://plantville.herokuapp.com/", content);
-                    if (response.IsSuccessStatusCode)
-                    {
-                        LoadChatMessages();
-                    }
-                    else
+                    if (!response.IsSuccessStatusCode)
                     {
                         MessageBox.Show(response.ReasonPhrase.ToString());
+
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error: {ex.Message}");
+            }
+        }
+
+        public async void GetTrade()
+        {
+            try
+            {
+                using (var httpClient = new HttpClient())
+                {
+                    var response = await httpClient.GetAsync(" http://plantville.herokuapp.com/trades");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var json = await response.Content.ReadAsStringAsync();
+                        var trades = JsonConvert.DeserializeObject<List<TradeData>>(json);
+
+                        var groupedTrades = trades.GroupBy(message => message.Pk);
+
+                        var formattedTrades = groupedTrades.Select(group =>
+                        {
+                            var trade = group.First();
+                            var stateText = trade.Fields.state == "pending" ? "bought" : "wants to buy";
+                            return $"[{trade.Fields.state}] {trade.Fields.author} {stateText} {trade.Fields.quantity} {trade.Fields.plant} for ${trade.Fields.price}";
+                        }).ToList();
+                        foreach (var item in formattedTrades)
+                        {
+                            myListBox.Items.Add(item);
+                        }
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                MessageBox.Show($"{ex.Message}");
+            }
+
+        }
+
+        private async void PostTrade(string username, string message)
+        {
+            try
+            {
+                using (var httpClient = new HttpClient())
+                {
+                    var content = new FormUrlEncodedContent(new Dictionary<string, string>
+                    {
+                        { "quantity", username },
+                        { "plant", message },
+                        { "price", message }
+                    });
+
+                    var response = await httpClient.PostAsync("http://plantville.herokuapp.com/", content);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        MessageBox.Show(response.ReasonPhrase.ToString());
+
                     }
                 }
             }
@@ -485,10 +628,36 @@ namespace week08
         //     RoutedEventArgs eventArgs = new RoutedEventArgs(Button.ClickEvent);
         //     BottomButton.RaiseEvent(eventArgs);
         // }
-        public class ChatMessage
+        public class ChatData
+        {
+            public string Model { get; set; }
+            public int Pk { get; set; }
+            public ChatFields Fields { get; set; }
+        }
+
+        public class ChatFields
         {
             public string Username { get; set; }
             public string Message { get; set; }
+            public DateTime CreatedAt { get; set; }
+            public DateTime UpdatedAt { get; set; }
+        }
+
+        public class TradeData
+        {
+            public string Model { get; set; }
+            public int Pk { get; set; }
+            public TradeDataField Fields { get; set; }
+        }
+
+        public class TradeDataField
+        {
+            public string author { get; set; }
+            public string accepted_by { get; set; }
+            public int price { get; set; }
+            public string state { get; set; }
+            public string plant { get; set; }
+            public int quantity { get; set; }
         }
     }
 }

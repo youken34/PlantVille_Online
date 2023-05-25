@@ -100,7 +100,7 @@ namespace week08 {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/week08;V1.0.0.0;component/interface.xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/week08;component/interface.xaml", System.UriKind.Relative);
             
             #line 1 "..\..\..\Interface.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);

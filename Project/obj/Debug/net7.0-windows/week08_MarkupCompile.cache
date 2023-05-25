@@ -1,20 +1,20 @@
 ﻿week08
-1.0.0.0
+
 
 winexe
 C#
 .cs
-c:\Users\Côme\Documents\GitHub\PlantVille_Online\obj\Debug\net7.0-windows\
+C:\Users\Côme\Documents\GitHub\PlantVille_Online\project\obj\Debug\net7.0-windows\
 week08
 none
 false
 TRACE;DEBUG;NET;NET7_0;NETCOREAPP
-c:\Users\Côme\Documents\GitHub\PlantVille_Online\App.xaml
+C:\Users\Côme\Documents\GitHub\PlantVille_Online\project\App.xaml
 21463672608
 
-7-548582925
+51740583353
 199-2071111239
 Interface.xaml;MainWindow.xaml;
 
-True
+False
 
