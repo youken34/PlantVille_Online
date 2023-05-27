@@ -27,11 +27,13 @@ namespace week08
     {
 
         // Next steps :
-        // Post method to post trade
         // Make the last adjustments regarding the acceptrade function (so that they are close as well) and you can't accept your own trade
+        // Also the author of the trade should get whichever plant he asked for
 
         private string dataFilePath = "data.txt";
         private string username;
+        List<TradeData> trades = new List<TradeData>();
+
 
         public Interface(string username)
         {
@@ -105,6 +107,7 @@ namespace week08
         public void ProposeTradePage(object sender, RoutedEventArgs r)
         {
             SetPage("Propose Trade", "", false, false, true, "Submit", true);
+            BottomButton.Click += PostTrade;
         }
 
 
@@ -428,9 +431,24 @@ namespace week08
                             {
                                 playerData.SeedHarvested.Remove(seed);
                             }
+                            int pk = trades
+                            .Where(trade => trade.Fields.price == priceString &&
+                                            trade.Fields.plant == plantString &&
+                                            trade.Fields.quantity == quantityValue) // Condition to filter
+                            .Select(trade => trade.Pk)  // Value returned
+                            .FirstOrDefault();          // One only
                             using (var httpClient = new HttpClient())
                             {
-
+                                var content = new FormUrlEncodedContent(new Dictionary<string, string>
+                                {
+                                    { "pk", pk.ToString() },
+                                    { "accepted_by", playerData.Username }
+                                });
+                                var response = await httpClient.PostAsync("https://plantville.herokuapp.com/accept_trade/", content);
+                                if (!response.IsSuccessStatusCode)
+                                {
+                                    MessageBox.Show(response.ReasonPhrase);
+                                }
                             }
                             MessageBox.Show($"You made {priceString}$ by selling {quantityValue} {capitalizedPlant}");
 
@@ -510,8 +528,8 @@ namespace week08
                     if (!response.IsSuccessStatusCode)
                     {
                         MessageBox.Show(response.ReasonPhrase.ToString());
-
                     }
+                    LoadChatMessages();
                 }
             }
             catch (Exception ex)
@@ -526,11 +544,11 @@ namespace week08
             {
                 using (var httpClient = new HttpClient())
                 {
-                    var response = await httpClient.GetAsync(" http://plantville.herokuapp.com/trades");
+                    var response = await httpClient.GetAsync("http://plantville.herokuapp.com/trades");
                     if (response.IsSuccessStatusCode)
                     {
                         var json = await response.Content.ReadAsStringAsync();
-                        var trades = JsonConvert.DeserializeObject<List<TradeData>>(json);
+                        trades = JsonConvert.DeserializeObject<List<TradeData>>(json);
 
                         var groupedTrades = trades.GroupBy(message => message.Pk);
 
@@ -554,26 +572,44 @@ namespace week08
 
         }
 
-        private async void PostTrade(string username, string message)
+        private async void PostTrade(Object sender, RoutedEventArgs r)
         {
             try
             {
-                using (var httpClient = new HttpClient())
+                var playerData = (Player)DataContext;
+                var selectedPlantItem = ItemToTrade.SelectedItem as ComboBoxItem;
+                var selectedPlantContent = selectedPlantItem?.Content?.ToString() ?? string.Empty;
+                if (!(string.IsNullOrEmpty(selectedPlantContent) && string.IsNullOrEmpty(Price.Text) && string.IsNullOrEmpty(Quantity.Text)))
                 {
-                    var content = new FormUrlEncodedContent(new Dictionary<string, string>
+                    using (var httpClient = new HttpClient())
                     {
-                        { "quantity", username },
-                        { "plant", message },
-                        { "price", message }
+                        var content = new FormUrlEncodedContent(new Dictionary<string, string>
+                    {
+                        { "author", playerData.Username },
+                        { "price", Price.Text.ToString() },
+                        { "plant", selectedPlantContent },
+                        { "quantity", Quantity.Text.ToString() }
                     });
+                        var response = await httpClient.PostAsync("http://plantville.herokuapp.com/trades", content);
 
-                    var response = await httpClient.PostAsync("http://plantville.herokuapp.com/", content);
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        MessageBox.Show(response.ReasonPhrase.ToString());
-
+                        if (response.IsSuccessStatusCode)
+                        {
+                            MessageBox.Show("Trade posted successfully");
+                            Price.Clear();
+                            Quantity.Clear();
+                            ItemToTrade.SelectedItem = null;
+                        }
+                        else
+                        {
+                            MessageBox.Show(response.ReasonPhrase.ToString());
+                        }
                     }
                 }
+                else
+                {
+                    MessageBox.Show("Please fill all the fields");
+                }
+
             }
             catch (Exception ex)
             {
