@@ -394,7 +394,11 @@ namespace week08
             {
                 PostChatMessage(username, message);
             }
-            LoadChatMessages();
+            else
+            {
+                MessageBox.Show("You can't send an empty message");
+                LoadChatMessages();
+            }
             SendInput.Text = "";
         }
 
@@ -441,16 +445,21 @@ namespace week08
                             {
                                 var content = new FormUrlEncodedContent(new Dictionary<string, string>
                                 {
-                                    { "pk", pk.ToString() },
+                                    { "trade_id", pk.ToString() },
                                     { "accepted_by", playerData.Username }
                                 });
-                                var response = await httpClient.PostAsync("https://plantville.herokuapp.com/accept_trade/", content);
+                                var response = await httpClient.PostAsync("https://plantville.herokuapp.com/accept_trade", content);
                                 if (!response.IsSuccessStatusCode)
                                 {
                                     MessageBox.Show(response.ReasonPhrase);
                                 }
+                                else
+                                {
+                                    MessageBox.Show($"You made {priceString}$ by selling {quantityValue} {capitalizedPlant}");
+                                    myListBox.Items.Clear();
+                                    GetTrade();
+                                }
                             }
-                            MessageBox.Show($"You made {priceString}$ by selling {quantityValue} {capitalizedPlant}");
 
                         }
                         else
