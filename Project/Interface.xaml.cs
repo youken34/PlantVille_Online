@@ -416,69 +416,77 @@ namespace week08
                     Match quantity = Regex.Match(trade, @"(?<=(buy|bought)\s)(\d+)");
                     Match plant = Regex.Match(trade, @"(?<=\d\s)(\w+)");
                     Match state = Regex.Match(trade, @"\[(.*?)\]");
+                    Match user = Regex.Match(trade, @"\s\w+");
 
                     string plantString = plant.ToString();
                     int priceString = Convert.ToInt32(price.ToString());
                     int quantityValue = Convert.ToInt32(quantity.ToString());
                     string stateString = state.ToString();
-
-                    if (price.Success && quantity.Success && plant.Success && stateString == "[open]")
+                    string userString = user.ToString().Trim();
+                    if (userString != playerData.Username)
                     {
-                        string capitalizedPlant = char.ToUpper(plantString[0]) + plantString.Substring(1);
-
-                        int count = playerData.SeedHarvested.Count(seed => seed.name == capitalizedPlant);
-                        if (count >= quantityValue)
+                        if (price.Success && quantity.Success && plant.Success && stateString == "[open]")
                         {
-                            playerData.Money += priceString;
-                            var seedsToRemove = playerData.SeedHarvested.Where(seed => seed.name == capitalizedPlant).Take(quantityValue).ToList();
-                            foreach (Seed seed in seedsToRemove)
+                            string capitalizedPlant = char.ToUpper(plantString[0]) + plantString.Substring(1);
+
+                            int count = playerData.SeedHarvested.Count(seed => seed.name == capitalizedPlant);
+                            if (count >= quantityValue)
                             {
-                                playerData.SeedHarvested.Remove(seed);
-                            }
-                            int pk = trades
-                            .Where(trade => trade.Fields.price == priceString &&
-                                            trade.Fields.plant == plantString &&
-                                            trade.Fields.quantity == quantityValue) // Condition to filter
-                            .Select(trade => trade.Pk)  // Value returned
-                            .FirstOrDefault();          // One only
-                            using (var httpClient = new HttpClient())
-                            {
-                                var content = new FormUrlEncodedContent(new Dictionary<string, string>
+                                playerData.Money += priceString;
+                                var seedsToRemove = playerData.SeedHarvested.Where(seed => seed.name == capitalizedPlant).Take(quantityValue).ToList();
+                                foreach (Seed seed in seedsToRemove)
+                                {
+                                    playerData.SeedHarvested.Remove(seed);
+                                }
+                                int pk = trades
+                                .Where(trade => trade.Fields.price == priceString &&
+                                                trade.Fields.plant == plantString &&
+                                                trade.Fields.quantity == quantityValue) // Condition to filter
+                                .Select(trade => trade.Pk)  // Value returned
+                                .FirstOrDefault();          // One only
+                                using (var httpClient = new HttpClient())
+                                {
+                                    var content = new FormUrlEncodedContent(new Dictionary<string, string>
                                 {
                                     { "trade_id", pk.ToString() },
                                     { "accepted_by", playerData.Username }
                                 });
-                                var response = await httpClient.PostAsync("https://plantville.herokuapp.com/accept_trade", content);
-                                if (!response.IsSuccessStatusCode)
-                                {
-                                    MessageBox.Show(response.ReasonPhrase);
+                                    var response = await httpClient.PostAsync("https://plantville.herokuapp.com/accept_trade", content);
+                                    if (!response.IsSuccessStatusCode)
+                                    {
+                                        MessageBox.Show(response.ReasonPhrase);
+                                    }
+                                    else
+                                    {
+                                        MessageBox.Show($"You made {priceString}$ by selling {quantityValue} {capitalizedPlant}");
+                                        myListBox.Items.Clear();
+                                        GetTrade();
+                                        SavePlayerData(playerData);
+                                    }
                                 }
-                                else
-                                {
-                                    MessageBox.Show($"You made {priceString}$ by selling {quantityValue} {capitalizedPlant}");
-                                    myListBox.Items.Clear();
-                                    GetTrade();
-                                }
-                            }
 
+                            }
+                            else
+                            {
+                                MessageBox.Show($"You dont have enough {capitalizedPlant} to take the trade");
+                            }
                         }
                         else
                         {
-                            MessageBox.Show($"You dont have enough {capitalizedPlant} to take the trade");
+                            MessageBox.Show("This trade is no longer available");
                         }
                     }
                     else
                     {
-                        MessageBox.Show("This trade is no longer available");
+                        MessageBox.Show("You cannot accept your own trade");
                     }
-                    SavePlayerData(playerData);
                 }
                 else
                 {
                     MessageBox.Show("Please select a trade");
                 }
-
             }
+
             catch (System.Exception ex)
             {
                 MessageBox.Show($"{ex.Message}");
@@ -668,11 +676,23 @@ namespace week08
             myListBox.Items.Clear();
             BottomButton.Content = ButtonContent;
         }
-        // private void SimulateButtonClick(object o, RoutedEventArgs r)
-        // {
-        //     RoutedEventArgs eventArgs = new RoutedEventArgs(Button.ClickEvent);
-        //     BottomButton.RaiseEvent(eventArgs);
-        // }
+        private void SimulateButtonClick(object o, KeyEventArgs r)
+        {
+            try
+            {
+                if (r.Key == Key.Enter)
+                {
+                    RoutedEventArgs eventArgs = new RoutedEventArgs(Button.ClickEvent);
+                    BottomButton.RaiseEvent(eventArgs);
+                    BottomButton.KeyUp -= SimulateButtonClick;
+                }
+
+            }
+            catch (System.Exception ex)
+            {
+                MessageBox.Show(ex.Message.ToString());
+            }
+        }
         public class ChatData
         {
             public string Model { get; set; }

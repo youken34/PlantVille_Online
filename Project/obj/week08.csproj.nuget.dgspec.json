@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Côme\\Documents\\GitHub\\PlantVille_Online\\Project\\week08.csproj": {}
+    "C:\\Users\\Côme\\Documents\\GitHub\\PlantVille_Online\\project\\week08.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Côme\\Documents\\GitHub\\PlantVille_Online\\Project\\week08.csproj": {
+    "C:\\Users\\Côme\\Documents\\GitHub\\PlantVille_Online\\project\\week08.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Côme\\Documents\\GitHub\\PlantVille_Online\\Project\\week08.csproj",
+        "projectUniqueName": "C:\\Users\\Côme\\Documents\\GitHub\\PlantVille_Online\\project\\week08.csproj",
         "projectName": "week08",
-        "projectPath": "C:\\Users\\Côme\\Documents\\GitHub\\PlantVille_Online\\Project\\week08.csproj",
+        "projectPath": "C:\\Users\\Côme\\Documents\\GitHub\\PlantVille_Online\\project\\week08.csproj",
         "packagesPath": "C:\\Users\\Côme\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Côme\\Documents\\GitHub\\PlantVille_Online\\Project\\obj\\",
+        "outputPath": "C:\\Users\\Côme\\Documents\\GitHub\\PlantVille_Online\\project\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Côme\\AppData\\Roaming\\NuGet\\NuGet.Config",
